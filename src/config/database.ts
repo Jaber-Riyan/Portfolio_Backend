@@ -1,14 +1,18 @@
-import mongoose from 'mongoose';
-import { config } from './index';
+import mongoose from "mongoose";
+import { config } from ".";
 
-const connectDB = async (): Promise<void> => {
-  try {
-    await mongoose.connect(config.mongoUri);
-    console.log('✅ MongoDB connected successfully');
-  } catch (error) {
-    console.error('❌ MongoDB connection error:', error);
-    process.exit(1);
-  }
+let cached = (global as any).mongoose;
+
+if (!cached) {
+  cached = (global as any).mongoose = { conn: null };
+}
+
+const connectDB = async () => {
+  if (cached.conn) return cached.conn;
+
+  cached.conn = await mongoose.connect(config.mongoUri);
+
+  return cached.conn;
 };
 
 export default connectDB;
