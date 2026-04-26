@@ -4,7 +4,7 @@
   "description": "Full-stack backend CMS for developer portfolio using Node.js, Express, TypeScript, MongoDB",
   "main": "dist/server.js",
   "scripts": {
-    "dev": "nodemon src/server.ts",
+    "dev": "ts-node-dev --respawn --transpile-only src/server.ts",
     "build": "tsc",
     "start": "node dist/server.js",
     "lint": "eslint src/**/*.ts",
@@ -29,7 +29,8 @@
     "helmet": "^7.1.0",
     "jsonwebtoken": "^9.0.2",
     "mongoose": "^8.6.3",
-    "morgan": "^1.10.0"
+    "morgan": "^1.10.0",
+    "ts-node-dev": "^2.0.0"
   },
   "devDependencies": {
     "@types/bcrypt": "^5.0.2",
