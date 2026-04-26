@@ -1,7 +1,7 @@
 import mongoose from "mongoose";
 import { config } from ".";
 
-let cached = (global as any).mongoose;
+let cached: any = (global as any).mongoose;
 
 if (!cached) {
   cached = (global as any).mongoose = { conn: null };
