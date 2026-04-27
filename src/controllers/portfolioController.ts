@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import Portfolio, { IPortfolio } from '../models/Portfolio';
+import Portfolio from '../models/Portfolio';
 import { createDefaultPortfolio } from '../services/portfolioService';
 
 export const getPortfolio = async (req: Request, res: Response): Promise<void> => {

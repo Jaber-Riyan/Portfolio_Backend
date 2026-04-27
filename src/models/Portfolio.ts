@@ -1,4 +1,4 @@
-import mongoose, { Document, Schema } from 'mongoose';
+import mongoose, { Document, Schema, Types } from 'mongoose';
 
 export interface IHero {
   title: string;
@@ -102,6 +102,7 @@ export interface ITheme {
 }
 
 export interface IPortfolio extends Document {
+  userId: Types.ObjectId;
   hero: IHero;
   about: IAbout;
   skills: ISkill[];
@@ -219,6 +220,7 @@ const ThemeSchema = new Schema<ITheme>({
 });
 
 const PortfolioSchema = new Schema<IPortfolio>({
+  userId: { type: Schema.Types.ObjectId, ref: 'User' },
   hero: HeroSchema,
   about: AboutSchema,
   skills: [SkillSchema],
@@ -237,5 +239,6 @@ const PortfolioSchema = new Schema<IPortfolio>({
 PortfolioSchema.index({ 'hero.title': 1 });
 PortfolioSchema.index({ projects: 1 });
 PortfolioSchema.index({ skills: 1 });
+PortfolioSchema.index({ userId: 1 }, { unique: true });
 
 export default mongoose.model<IPortfolio>('Portfolio', PortfolioSchema);

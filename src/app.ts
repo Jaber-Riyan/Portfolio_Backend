@@ -24,7 +24,14 @@ app.use((req: express.Request, res: express.Response, next: express.NextFunction
   next();
 });
 
-app.use(routes);
+app.use("/api/v1", routes);
+
+app.get("/", (req: express.Request, res: express.Response) => {
+  res.status(200).json({
+    success: true,
+    message: "Welcome to the Portfolio API",
+  });
+});
 
 app.use(notFound);
 app.use(errorHandler);
