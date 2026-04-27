@@ -8,28 +8,26 @@ export interface IUser extends Document {
   updatedAt: Date;
 }
 
-const UserSchema = new Schema<IUser>({
+const UserSchema: Schema = new Schema({
   email: {
     type: String,
-    required: [true, 'Email is required'],
+    required: true,
     unique: true,
     lowercase: true,
     trim: true,
   },
   password: {
     type: String,
-    required: [true, 'Password is required'],
-    minlength: [6, 'Password must be at least 6 characters'],
+    required: true,
   },
   role: {
     type: String,
     enum: ['admin'],
     default: 'admin',
   },
-}, {
-  timestamps: true,
-});
-
-UserSchema.index({ email: 1 });
+},
+  {
+    timestamps: true,
+  });
 
 export default mongoose.model<IUser>('User', UserSchema);
