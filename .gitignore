@@ -8,6 +8,9 @@ dist/
 *.js.map
 *.d.ts
 
+# Static Files
+uploads
+
 # Environment variables
 .env
 .env.local
