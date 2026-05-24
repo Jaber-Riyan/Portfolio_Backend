@@ -4,6 +4,7 @@ import { IHeroDocument } from './hero.interface';
 import { ApiError } from '../../shared/errors/ApiError';
 import { UploadService } from '../../core/storage/upload.service';
 import { BaseService } from '../../shared/helpers/baseService';
+import { resolve } from 'dns';
 
 class HeroService extends BaseService<IHeroDocument, typeof heroRepository> {
   constructor() {
