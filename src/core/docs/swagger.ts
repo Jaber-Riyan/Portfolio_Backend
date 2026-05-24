@@ -11,7 +11,7 @@ const swaggerSpec = {
   },
   servers: [
     { url: 'http://localhost:5000', description: 'Development' },
-    { url: 'https://your-domain.com', description: 'Production' },
+    { url: 'https://portfolioapi.jaberriyan.com', description: 'Production' },
   ],
   components: {
     securitySchemes: {
