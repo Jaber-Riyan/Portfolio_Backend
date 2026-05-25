@@ -1,4 +1,4 @@
-import app from "../app";
+import app from "../app/app";
 import connectDB from "../config/database";
 
 let isConnected = false;
