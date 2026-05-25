@@ -4,7 +4,6 @@ import { IHeroDocument } from './hero.interface';
 import { ApiError } from '../../shared/errors/ApiError';
 import { UploadService } from '../../core/storage/upload.service';
 import { BaseService } from '../../shared/helpers/baseService';
-import { resolve } from 'dns';
 
 class HeroService extends BaseService<IHeroDocument, typeof heroRepository> {
   constructor() {
@@ -21,8 +20,10 @@ class HeroService extends BaseService<IHeroDocument, typeof heroRepository> {
     file?: Express.Multer.File,
   ): Promise<IHeroDocument> {
     const payload: Partial<IHeroDocument> = { ...dto } as unknown as Partial<IHeroDocument>;
-    if (file) {
-      payload.profileImage = UploadService.getRelativePath(file.path);
+    if (file) payload.profileImage = UploadService.getRelativePath(file.path);
+    const existing = await this.getHero();
+    if (existing) {
+      return (await heroRepository.updateById(existing._id.toString(), payload))!;
     }
     return heroRepository.create(payload);
   }

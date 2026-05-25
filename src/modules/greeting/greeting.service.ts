@@ -16,6 +16,10 @@ class GreetingService extends BaseService<IGreetingDocument, typeof greetingRepo
   async createGreeting(dto: CreateGreetingDto, file?: Express.Multer.File): Promise<IGreetingDocument> {
     const payload: Partial<IGreetingDocument> = { ...dto } as unknown as Partial<IGreetingDocument>;
     if (file) payload.image = UploadService.getRelativePath(file.path);
+    const existing = await this.getGreeting();
+    if (existing) {
+      return (await greetingRepository.updateById(existing._id.toString(), payload))!;
+    }
     return greetingRepository.create(payload);
   }
 

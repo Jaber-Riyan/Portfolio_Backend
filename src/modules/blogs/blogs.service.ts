@@ -44,6 +44,13 @@ class BlogsService extends BaseService<IBlogDocument, typeof blogsRepository> {
 
   async createBlog(dto: CreateBlogDto, file?: Express.Multer.File): Promise<IBlogDocument> {
     const base = generateSlug(dto.slug ?? dto.title);
+    const existing = await blogsRepository.findBySlug(base);
+    if (existing) {
+      const update: Partial<IBlogDocument> = { ...dto } as unknown as Partial<IBlogDocument>;
+      if (dto.slug) update.slug = await ensureUniqueSlug(generateSlug(dto.slug), existing._id.toString());
+      if (file) update.image = await UploadService.handleImageUpdate(existing.image, file);
+      return (await blogsRepository.updateById(existing._id.toString(), update))!;
+    }
     const slug = await ensureUniqueSlug(base);
     const payload: Partial<IBlogDocument> = { ...dto, slug } as unknown as Partial<IBlogDocument>;
     if (file) payload.image = UploadService.getRelativePath(file.path);

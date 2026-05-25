@@ -13,5 +13,6 @@ const educationSchema = new Schema<IEducationDocument>(
 );
 
 educationSchema.index({ sortOrder: 1 });
+educationSchema.index({ degree: 1, school: 1 }, { unique: true });
 
 export const EducationModel = mongoose.model<IEducationDocument>('Education', educationSchema);

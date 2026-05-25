@@ -15,5 +15,6 @@ const reviewSchema = new Schema<IReviewDocument>(
 
 reviewSchema.index({ sortOrder: 1 });
 reviewSchema.index({ featured: 1 });
+reviewSchema.index({ author: 1 }, { unique: true });
 
 export const ReviewModel = mongoose.model<IReviewDocument>('Review', reviewSchema);

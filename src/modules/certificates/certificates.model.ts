@@ -14,5 +14,6 @@ const certificateSchema = new Schema<ICertificateDocument>(
 );
 
 certificateSchema.index({ sortOrder: 1 });
+certificateSchema.index({ title: 1 }, { unique: true });
 
 export const CertificateModel = mongoose.model<ICertificateDocument>('Certificate', certificateSchema);

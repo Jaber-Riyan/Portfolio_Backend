@@ -15,6 +15,11 @@ class ReviewsService extends BaseService<IReviewDocument, typeof reviewsReposito
   async createReview(dto: CreateReviewDto, file?: Express.Multer.File): Promise<IReviewDocument> {
     const payload: Partial<IReviewDocument> = { ...dto } as unknown as Partial<IReviewDocument>;
     if (file) payload.avatar = UploadService.getRelativePath(file.path);
+    const existing = await reviewsRepository.findOne({ author: dto.author });
+    if (existing) {
+      if (file) payload.avatar = await UploadService.handleImageUpdate(existing.avatar, file);
+      return (await reviewsRepository.updateById(existing._id.toString(), payload))!;
+    }
     return reviewsRepository.create(payload);
   }
 

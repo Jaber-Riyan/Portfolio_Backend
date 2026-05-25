@@ -16,5 +16,6 @@ const experienceSchema = new Schema<IExperienceDocument>(
 );
 
 experienceSchema.index({ sortOrder: 1 });
+experienceSchema.index({ role: 1, company: 1 }, { unique: true });
 
 export const ExperienceModel = mongoose.model<IExperienceDocument>('Experience', experienceSchema);

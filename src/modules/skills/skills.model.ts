@@ -16,5 +16,6 @@ const skillCategorySchema = new Schema<ISkillCategoryDocument>(
 );
 
 skillCategorySchema.index({ sortOrder: 1 });
+skillCategorySchema.index({ title: 1 }, { unique: true });
 
 export const SkillCategoryModel = mongoose.model<ISkillCategoryDocument>('SkillCategory', skillCategorySchema);

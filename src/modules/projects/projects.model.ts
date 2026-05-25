@@ -24,5 +24,6 @@ const projectSchema = new Schema<IProjectDocument>(
 projectSchema.index({ sortOrder: 1 });
 projectSchema.index({ featured: 1 });
 projectSchema.index({ title: 'text' });
+projectSchema.index({ title: 1 }, { unique: true });
 
 export const ProjectModel = mongoose.model<IProjectDocument>('Project', projectSchema);

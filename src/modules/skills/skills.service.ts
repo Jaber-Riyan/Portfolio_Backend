@@ -11,6 +11,15 @@ class SkillsService extends BaseService<ISkillCategoryDocument, typeof skillsRep
     return skillsRepository.findAll({}, { sortOrder: 1 });
   }
 
+  async create(data: Partial<ISkillCategoryDocument>): Promise<ISkillCategoryDocument> {
+    const existing = await SkillCategoryModel.findOne({ title: data.title });
+    if (existing) {
+      const { title, ...updateData } = data;
+      return (await SkillCategoryModel.findByIdAndUpdate(existing._id, updateData, { new: true }))!;
+    }
+    return skillsRepository.create(data);
+  }
+
   async reorder(ids: string[]): Promise<void> {
     await reorderDocuments(SkillCategoryModel, ids);
   }

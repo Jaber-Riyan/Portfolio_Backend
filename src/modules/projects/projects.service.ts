@@ -28,6 +28,11 @@ class ProjectsService extends BaseService<IProjectDocument, typeof projectsRepos
   async createProject(dto: CreateProjectDto, file?: Express.Multer.File): Promise<IProjectDocument> {
     const payload: Partial<IProjectDocument> = { ...dto } as unknown as Partial<IProjectDocument>;
     if (file) payload.image = UploadService.getRelativePath(file.path);
+    const existing = await projectsRepository.findOne({ title: dto.title });
+    if (existing) {
+      if (file) payload.image = await UploadService.handleImageUpdate(existing.image, file);
+      return (await projectsRepository.updateById(existing._id.toString(), payload))!;
+    }
     return projectsRepository.create(payload);
   }
 
