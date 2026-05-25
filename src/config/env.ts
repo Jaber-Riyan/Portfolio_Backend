@@ -15,6 +15,9 @@ const envSchema = z.object({
   ADMIN_PASSWORD: z.string().min(6).default('password123'),
   UPLOAD_DIR: z.string().default('uploads'),
   MAX_FILE_SIZE: z.string().default('5242880'),
+  NODEMAILER_GMAIL: z.string().default(''),
+  NODEMAILER_PASS: z.string().default(''),
+  NOTIFY_EMAIL: z.string().default(''),
 });
 
 const parsed = envSchema.safeParse(process.env);
@@ -38,4 +41,11 @@ export const env = {
   maxFileSize: parseInt(parsed.data.MAX_FILE_SIZE, 10),
   isDev: parsed.data.NODE_ENV === 'development',
   isProd: parsed.data.NODE_ENV === 'production',
+  smtp: {
+    host: 'smtp.gmail.com',
+    port: 587,
+    user: parsed.data.NODEMAILER_GMAIL,
+    pass: parsed.data.NODEMAILER_PASS,
+  },
+  notifyEmail: parsed.data.NOTIFY_EMAIL || parsed.data.NODEMAILER_GMAIL,
 };
