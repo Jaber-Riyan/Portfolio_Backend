@@ -9,8 +9,6 @@ dist/
 uploads
 
 # Environment variables
-.env
-.env.local
 .env.*.local
 
 # IDE
@@ -36,3 +34,4 @@ coverage/
 tmp/
 temp/
 .vercel
+config.bat
