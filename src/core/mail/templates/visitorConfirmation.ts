@@ -20,83 +20,105 @@ export const visitorConfirmationTemplate = (data: VisitorConfirmationData): stri
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Message Received</title>
 </head>
-<body style="margin:0;padding:0;background-color:#0f172a;font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;">
-  <table width="100%" cellpadding="0" cellspacing="0" style="background-color:#0f172a;padding:48px 20px;">
+<body style="margin:0;padding:0;background-color:#f1f5f9;font-family:'Segoe UI',Arial,sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background-color:#f1f5f9;padding:40px 16px;">
     <tr>
       <td align="center">
-        <table width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;">
+        <table width="580" cellpadding="0" cellspacing="0" style="max-width:580px;width:100%;">
+
+          <!-- Top accent bar -->
+          <tr>
+            <td style="background:linear-gradient(90deg,#10b981,#6366f1,#8b5cf6);height:5px;border-radius:8px 8px 0 0;font-size:0;line-height:0;">&nbsp;</td>
+          </tr>
 
           <!-- Header -->
           <tr>
-            <td style="background:linear-gradient(135deg,#0ea5e9 0%,#6366f1 50%,#8b5cf6 100%);padding:48px 40px 36px;border-radius:20px 20px 0 0;text-align:center;">
-              <div style="font-size:52px;margin-bottom:16px;">✅</div>
-              <h1 style="color:#ffffff;margin:0 0 10px;font-size:26px;font-weight:800;letter-spacing:-0.5px;">Message Received!</h1>
-              <p style="color:rgba(255,255,255,0.8);margin:0;font-size:15px;">Hi <strong>${senderName}</strong>, your message has been sent successfully.</p>
-            </td>
-          </tr>
-
-          <!-- Body -->
-          <tr>
-            <td style="background:#1e293b;padding:36px 40px 0;">
-              <p style="color:#94a3b8;font-size:15px;line-height:1.7;margin:0 0 24px;">
-                Thank you for reaching out! I've received your message and will get back to you as soon as possible, usually within <strong style="color:#f1f5f9;">24–48 hours</strong>.
-              </p>
-
-              <!-- Message recap card -->
+            <td style="background:#ffffff;padding:40px 48px 32px;text-align:center;border-left:1px solid #e2e8f0;border-right:1px solid #e2e8f0;">
               <table width="100%" cellpadding="0" cellspacing="0">
                 <tr>
-                  <td style="background:#0f172a;border-radius:14px;padding:24px;border:1px solid #1e3a5f;">
-                    <p style="color:#64748b;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1.2px;margin:0 0 6px;">Your message</p>
-                    <p style="color:#818cf8;font-size:15px;font-weight:600;margin:0 0 16px;padding-bottom:16px;border-bottom:1px solid #1e293b;">${subject}</p>
-                    <p style="color:#94a3b8;font-size:14px;line-height:1.7;margin:0;">${escapedMessage}</p>
+                  <td align="center" style="padding-bottom:20px;">
+                    <div style="display:inline-block;width:64px;height:64px;background:#dcfce7;border-radius:50%;text-align:center;line-height:64px;font-size:30px;">
+                      ✅
+                    </div>
+                  </td>
+                </tr>
+                <tr>
+                  <td align="center">
+                    <h1 style="margin:0 0 8px;font-size:24px;font-weight:700;color:#0f172a;letter-spacing:-0.3px;">Message received, ${senderName}!</h1>
+                    <p style="margin:0;font-size:15px;color:#64748b;line-height:1.6;">Thanks for reaching out. I'll get back to you within <strong style="color:#0f172a;">24–48 hours</strong>.</p>
                   </td>
                 </tr>
               </table>
             </td>
           </tr>
 
-          <!-- What to expect -->
+          <!-- Message recap -->
           <tr>
-            <td style="background:#1e293b;padding:28px 40px 0;">
-              <p style="color:#64748b;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1.2px;margin:0 0 16px;">What happens next?</p>
+            <td style="background:#ffffff;padding:0 48px;border-left:1px solid #e2e8f0;border-right:1px solid #e2e8f0;">
+              <div style="height:1px;background:#f1f5f9;">&nbsp;</div>
+            </td>
+          </tr>
+          <tr>
+            <td style="background:#ffffff;padding:28px 48px 0;border-left:1px solid #e2e8f0;border-right:1px solid #e2e8f0;">
+              <p style="margin:0 0 12px;font-size:11px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:1px;">Your message summary</p>
               <table width="100%" cellpadding="0" cellspacing="0">
                 <tr>
-                  <td style="padding:0 0 14px;">
-                    <table cellpadding="0" cellspacing="0">
-                      <tr>
-                        <td style="width:32px;vertical-align:top;padding-right:12px;">
-                          <div style="width:28px;height:28px;background:rgba(99,102,241,0.15);border-radius:50%;text-align:center;line-height:28px;font-size:13px;border:1px solid rgba(99,102,241,0.3);">1</div>
-                        </td>
-                        <td style="vertical-align:top;padding-top:4px;">
-                          <p style="color:#cbd5e1;font-size:14px;margin:0;"><strong style="color:#f1f5f9;">${ownerName}</strong> will review your message</p>
-                        </td>
-                      </tr>
-                    </table>
+                  <td style="background:#f8fafc;border-radius:12px;padding:20px;border:1px solid #e2e8f0;">
+                    <p style="margin:0 0 4px;font-size:12px;font-weight:600;color:#94a3b8;text-transform:uppercase;letter-spacing:0.8px;">Subject</p>
+                    <p style="margin:0 0 16px;font-size:15px;font-weight:600;color:#1e293b;padding-bottom:16px;border-bottom:1px solid #e2e8f0;">${subject}</p>
+                    <p style="margin:0 0 4px;font-size:12px;font-weight:600;color:#94a3b8;text-transform:uppercase;letter-spacing:0.8px;">Message</p>
+                    <p style="margin:0;font-size:14px;color:#475569;line-height:1.7;">${escapedMessage}</p>
                   </td>
                 </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- What's next -->
+          <tr>
+            <td style="background:#ffffff;padding:28px 48px 0;border-left:1px solid #e2e8f0;border-right:1px solid #e2e8f0;">
+              <p style="margin:0 0 16px;font-size:11px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:1px;">What happens next</p>
+              <table width="100%" cellpadding="0" cellspacing="0">
+                <!-- Step 1 -->
                 <tr>
-                  <td style="padding:0 0 14px;">
+                  <td style="padding-bottom:14px;">
                     <table cellpadding="0" cellspacing="0">
                       <tr>
-                        <td style="width:32px;vertical-align:top;padding-right:12px;">
-                          <div style="width:28px;height:28px;background:rgba(99,102,241,0.15);border-radius:50%;text-align:center;line-height:28px;font-size:13px;border:1px solid rgba(99,102,241,0.3);">2</div>
+                        <td style="width:36px;vertical-align:top;padding-right:12px;">
+                          <div style="width:32px;height:32px;background:#ede9fe;border-radius:8px;text-align:center;line-height:32px;font-size:14px;font-weight:700;color:#7c3aed;">1</div>
                         </td>
-                        <td style="vertical-align:top;padding-top:4px;">
-                          <p style="color:#cbd5e1;font-size:14px;margin:0;">You'll receive a reply within <strong style="color:#f1f5f9;">24–48 hours</strong></p>
+                        <td style="vertical-align:middle;">
+                          <p style="margin:0;font-size:14px;color:#334155;"><strong style="color:#0f172a;">${ownerName}</strong> reviews your message</p>
                         </td>
                       </tr>
                     </table>
                   </td>
                 </tr>
+                <!-- Step 2 -->
+                <tr>
+                  <td style="padding-bottom:14px;">
+                    <table cellpadding="0" cellspacing="0">
+                      <tr>
+                        <td style="width:36px;vertical-align:top;padding-right:12px;">
+                          <div style="width:32px;height:32px;background:#ede9fe;border-radius:8px;text-align:center;line-height:32px;font-size:14px;font-weight:700;color:#7c3aed;">2</div>
+                        </td>
+                        <td style="vertical-align:middle;">
+                          <p style="margin:0;font-size:14px;color:#334155;">You'll receive a reply within <strong style="color:#0f172a;">24–48 hours</strong></p>
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+                <!-- Step 3 -->
                 <tr>
                   <td>
                     <table cellpadding="0" cellspacing="0">
                       <tr>
-                        <td style="width:32px;vertical-align:top;padding-right:12px;">
-                          <div style="width:28px;height:28px;background:rgba(99,102,241,0.15);border-radius:50%;text-align:center;line-height:28px;font-size:13px;border:1px solid rgba(99,102,241,0.3);">3</div>
+                        <td style="width:36px;vertical-align:top;padding-right:12px;">
+                          <div style="width:32px;height:32px;background:#ede9fe;border-radius:8px;text-align:center;line-height:32px;font-size:14px;font-weight:700;color:#7c3aed;">3</div>
                         </td>
-                        <td style="vertical-align:top;padding-top:4px;">
-                          <p style="color:#cbd5e1;font-size:14px;margin:0;">Check your inbox (and spam folder just in case 😄)</p>
+                        <td style="vertical-align:middle;">
+                          <p style="margin:0;font-size:14px;color:#334155;">Check your inbox — and your spam folder just in case 😊</p>
                         </td>
                       </tr>
                     </table>
@@ -106,22 +128,18 @@ export const visitorConfirmationTemplate = (data: VisitorConfirmationData): stri
             </td>
           </tr>
 
-          <!-- Divider + signature -->
+          <!-- Signature -->
           <tr>
-            <td style="background:#1e293b;padding:32px 40px 40px;">
-              <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:28px;">
-                <tr>
-                  <td style="height:1px;background:linear-gradient(90deg,transparent,#334155,transparent);font-size:0;line-height:0;">&nbsp;</td>
-                </tr>
-              </table>
-              <table width="100%" cellpadding="0" cellspacing="0">
+            <td style="background:#ffffff;padding:32px 48px 40px;border-left:1px solid #e2e8f0;border-right:1px solid #e2e8f0;">
+              <div style="height:1px;background:#f1f5f9;margin-bottom:24px;">&nbsp;</div>
+              <table cellpadding="0" cellspacing="0">
                 <tr>
                   <td style="width:48px;vertical-align:middle;padding-right:14px;">
-                    <div style="width:48px;height:48px;background:linear-gradient(135deg,#6366f1,#8b5cf6);border-radius:50%;text-align:center;line-height:48px;color:#ffffff;font-size:20px;font-weight:800;">J</div>
+                    <div style="width:48px;height:48px;background:linear-gradient(135deg,#6366f1,#8b5cf6);border-radius:12px;text-align:center;line-height:48px;color:#ffffff;font-size:20px;font-weight:700;">J</div>
                   </td>
                   <td style="vertical-align:middle;">
-                    <p style="margin:0 0 2px;color:#f1f5f9;font-size:15px;font-weight:700;">${ownerName}</p>
-                    <p style="margin:0;color:#64748b;font-size:13px;">Full-Stack Developer</p>
+                    <p style="margin:0 0 2px;font-size:15px;font-weight:700;color:#0f172a;">${ownerName}</p>
+                    <p style="margin:0;font-size:13px;color:#64748b;">Full-Stack Developer &bull; Portfolio</p>
                   </td>
                 </tr>
               </table>
@@ -130,9 +148,9 @@ export const visitorConfirmationTemplate = (data: VisitorConfirmationData): stri
 
           <!-- Footer -->
           <tr>
-            <td style="background:#0a0f1e;padding:24px 40px;border-radius:0 0 20px 20px;border-top:1px solid #1e293b;text-align:center;">
-              <p style="color:#334155;font-size:12px;margin:0 0 6px;">This is an automated confirmation — please do not reply to this email.</p>
-              <p style="color:#1e293b;font-size:11px;margin:0;">${timestamp}</p>
+            <td style="background:#f8fafc;padding:20px 48px;border-radius:0 0 8px 8px;border:1px solid #e2e8f0;border-top:none;text-align:center;">
+              <p style="margin:0 0 4px;font-size:12px;color:#94a3b8;">This is an automated confirmation — please do not reply to this email.</p>
+              <p style="margin:0;font-size:11px;color:#cbd5e1;">${timestamp}</p>
             </td>
           </tr>
 
