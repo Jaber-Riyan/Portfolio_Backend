@@ -3,10 +3,9 @@ import { getHero, createHero, updateHero, deleteHero } from './hero.controller';
 import { protect, authorizeAdmin } from '../../shared/middleware/auth';
 import { validate } from '../../shared/middleware/validate';
 import { createHeroSchema, updateHeroSchema } from './hero.validation';
-import { uploaders } from '../../core/storage/multer';
+import { upload } from '../../middleware/upload';
 
 const router = Router();
-const upload = uploaders.hero;
 
 router.get('/', getHero);
 router.post('/', protect, authorizeAdmin, upload.single('profileImage'), validate(createHeroSchema), createHero);

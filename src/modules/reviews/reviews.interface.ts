@@ -1,10 +1,11 @@
 import { Document } from 'mongoose';
+import { IUploadedImage } from '../../types';
 
 export interface IReview {
   quote: string;
   author: string;
   role: string;
-  avatar: string;
+  avatar: IUploadedImage;
   featured: boolean;
   sortOrder: number;
 }

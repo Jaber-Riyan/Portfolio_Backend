@@ -10,7 +10,7 @@ export const DEFAULT_SECTION_THEME = {
   bg: '#0f172a',
   text: '#f1f5f9',
   accent: '#6366f1',
-  bgImage: '',
+  bgImage: { url: '', key: '' },
 };
 
 export const DEFAULT_THEME: ITheme = {

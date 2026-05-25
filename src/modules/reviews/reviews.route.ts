@@ -3,10 +3,9 @@ import { getReviews, createReview, updateReview, deleteReview } from './reviews.
 import { protect, authorizeAdmin } from '../../shared/middleware/auth';
 import { validate } from '../../shared/middleware/validate';
 import { createReviewSchema, updateReviewSchema } from './reviews.validation';
-import { uploaders } from '../../core/storage/multer';
+import { upload } from '../../middleware/upload';
 
 const router = Router();
-const upload = uploaders.reviews;
 
 router.get('/', getReviews);
 router.post('/', protect, authorizeAdmin, upload.single('avatar'), validate(createReviewSchema), createReview);

@@ -3,7 +3,7 @@ import { IProjectDocument } from './projects.interface';
 import { CreateProjectDto, UpdateProjectDto, ProjectQueryDto } from './projects.types';
 import { BaseService } from '../../shared/helpers/baseService';
 import { ApiError } from '../../shared/errors/ApiError';
-import { UploadService } from '../../core/storage/upload.service';
+import { UploadService } from '../../services/upload.service';
 import { buildQuery, buildSort } from '../../shared/helpers/queryBuilder';
 import { parsePagination, buildPaginationMeta } from '../../shared/helpers/pagination';
 import { reorderDocuments } from '../../shared/helpers/reorder';
@@ -27,12 +27,12 @@ class ProjectsService extends BaseService<IProjectDocument, typeof projectsRepos
 
   async createProject(dto: CreateProjectDto, file?: Express.Multer.File): Promise<IProjectDocument> {
     const payload: Partial<IProjectDocument> = { ...dto } as unknown as Partial<IProjectDocument>;
-    if (file) payload.image = UploadService.getRelativePath(file.path);
     const existing = await projectsRepository.findOne({ title: dto.title });
     if (existing) {
-      if (file) payload.image = await UploadService.handleImageUpdate(existing.image, file);
+      if (file) payload.image = await UploadService.replace(existing.image, file);
       return (await projectsRepository.updateById(existing._id.toString(), payload))!;
     }
+    if (file) payload.image = await UploadService.upload(file);
     return projectsRepository.create(payload);
   }
 
@@ -40,7 +40,7 @@ class ProjectsService extends BaseService<IProjectDocument, typeof projectsRepos
     const existing = await projectsRepository.findById(id);
     if (!existing) throw ApiError.notFound('Project not found');
     const update: Partial<IProjectDocument> = { ...dto } as unknown as Partial<IProjectDocument>;
-    if (file) update.image = await UploadService.handleImageUpdate(existing.image, file);
+    if (file) update.image = await UploadService.replace(existing.image, file);
     const updated = await projectsRepository.updateById(id, update);
     if (!updated) throw ApiError.notFound('Project not found');
     return updated;
@@ -49,7 +49,7 @@ class ProjectsService extends BaseService<IProjectDocument, typeof projectsRepos
   async deleteProject(id: string): Promise<IProjectDocument> {
     const project = await projectsRepository.findById(id);
     if (!project) throw ApiError.notFound('Project not found');
-    if (project.image) await UploadService.removeFile(project.image);
+    await UploadService.remove(project.image);
     const deleted = await projectsRepository.deleteById(id);
     if (!deleted) throw ApiError.notFound('Project not found');
     return deleted;

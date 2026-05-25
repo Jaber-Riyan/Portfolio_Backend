@@ -18,6 +18,7 @@ const envSchema = z.object({
   NODEMAILER_GMAIL: z.string().default(''),
   NODEMAILER_PASS: z.string().default(''),
   NOTIFY_EMAIL: z.string().default(''),
+  UPLOADTHING_TOKEN: z.string().default(''),
 });
 
 const parsed = envSchema.safeParse(process.env);
@@ -48,4 +49,5 @@ export const env = {
     pass: parsed.data.NODEMAILER_PASS,
   },
   notifyEmail: parsed.data.NOTIFY_EMAIL || parsed.data.NODEMAILER_GMAIL,
+  uploadthingToken: parsed.data.UPLOADTHING_TOKEN,
 };

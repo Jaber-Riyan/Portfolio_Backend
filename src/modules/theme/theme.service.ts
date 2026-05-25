@@ -3,8 +3,9 @@ import { IThemeDocument } from './theme.interface';
 import { UpdateGlobalThemeDto } from './theme.types';
 import { DEFAULT_THEME } from './theme.constant';
 import { ApiError } from '../../shared/errors/ApiError';
-import { UploadService } from '../../core/storage/upload.service';
+import { UploadService } from '../../services/upload.service';
 import { SectionName } from '../../shared/constants';
+import { IUploadedImage } from '../../types';
 
 class ThemeService {
   async getTheme(): Promise<IThemeDocument> {
@@ -32,9 +33,9 @@ class ThemeService {
     Object.entries(dto).forEach(([k, v]) => { if (v !== undefined) setObj[`sections.${section}.${k}`] = v; });
 
     if (file) {
-      const oldBgImage = (theme.sections as Record<string, { bgImage?: string }>)[section]?.bgImage;
-      const newPath = await UploadService.handleImageUpdate(oldBgImage, file);
-      setObj[`sections.${section}.bgImage`] = newPath;
+      const oldBgImage = (theme.sections as Record<string, { bgImage?: IUploadedImage }>)[section]?.bgImage;
+      const newImage = await UploadService.replace(oldBgImage, file);
+      setObj[`sections.${section}.bgImage`] = newImage;
     }
 
     const updated = await themeRepository.updateById(theme._id.toString(), { $set: setObj });

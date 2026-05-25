@@ -7,7 +7,10 @@ const sectionThemeSchema = new Schema(
     bg: { type: String, default: '#0f172a' },
     text: { type: String, default: '#f1f5f9' },
     accent: { type: String, default: '#6366f1' },
-    bgImage: { type: String, default: '' },
+    bgImage: {
+      url: { type: String, default: '' },
+      key: { type: String, default: '' },
+    },
   },
   { _id: false },
 );

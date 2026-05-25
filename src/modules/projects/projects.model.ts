@@ -9,7 +9,10 @@ const githubLinkSchema = new Schema(
 const projectSchema = new Schema<IProjectDocument>(
   {
     title: { type: String, required: true, trim: true },
-    image: { type: String, default: '' },
+    image: {
+      url: { type: String, default: '' },
+      key: { type: String, default: '' },
+    },
     techStack: { type: [String], default: [] },
     summary: { type: String, required: true },
     description: { type: String, required: true },

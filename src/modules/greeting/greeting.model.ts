@@ -6,7 +6,10 @@ const greetingSchema = new Schema<IGreetingDocument>(
     enabled: { type: Boolean, default: true },
     title: { type: String, required: true },
     message: { type: String, required: true },
-    image: { type: String, default: '' },
+    image: {
+      url: { type: String, default: '' },
+      key: { type: String, default: '' },
+    },
     bgColor: { type: String, default: '#0f172a' },
     textColor: { type: String, default: '#ffffff' },
     ctaLabel: { type: String, required: true },

@@ -3,10 +3,9 @@ import { getGreeting, createGreeting, updateGreeting, deleteGreeting } from './g
 import { protect, authorizeAdmin } from '../../shared/middleware/auth';
 import { validate } from '../../shared/middleware/validate';
 import { createGreetingSchema, updateGreetingSchema } from './greeting.validation';
-import { uploaders } from '../../core/storage/multer';
+import { upload } from '../../middleware/upload';
 
 const router = Router();
-const upload = uploaders.greeting;
 
 router.get('/', getGreeting);
 router.post('/', protect, authorizeAdmin, upload.single('image'), validate(createGreetingSchema), createGreeting);

@@ -1,4 +1,5 @@
 import { Document } from 'mongoose';
+import { IUploadedImage } from '../../types';
 
 export interface ICtaButton {
   label: string;
@@ -16,7 +17,7 @@ export interface IHero {
   name: string;
   role: string;
   description: string;
-  profileImage: string;
+  profileImage: IUploadedImage;
   primaryCta: ICtaButton;
   secondaryCta: ICtaButton;
   socialLinks: ISocialLinks;

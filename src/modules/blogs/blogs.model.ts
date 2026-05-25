@@ -7,7 +7,10 @@ const blogSchema = new Schema<IBlogDocument>(
     slug: { type: String, required: true, unique: true, lowercase: true, trim: true },
     excerpt: { type: String, required: true },
     body: { type: String, required: true },
-    image: { type: String, default: '' },
+    image: {
+      url: { type: String, default: '' },
+      key: { type: String, default: '' },
+    },
     tags: { type: [String], default: [] },
     link: { type: String, default: '' },
     readTime: { type: Number, default: 0 },

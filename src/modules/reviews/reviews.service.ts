@@ -3,7 +3,7 @@ import { IReviewDocument } from './reviews.interface';
 import { CreateReviewDto, UpdateReviewDto } from './reviews.types';
 import { BaseService } from '../../shared/helpers/baseService';
 import { ApiError } from '../../shared/errors/ApiError';
-import { UploadService } from '../../core/storage/upload.service';
+import { UploadService } from '../../services/upload.service';
 
 class ReviewsService extends BaseService<IReviewDocument, typeof reviewsRepository> {
   constructor() { super(reviewsRepository); }
@@ -14,12 +14,12 @@ class ReviewsService extends BaseService<IReviewDocument, typeof reviewsReposito
 
   async createReview(dto: CreateReviewDto, file?: Express.Multer.File): Promise<IReviewDocument> {
     const payload: Partial<IReviewDocument> = { ...dto } as unknown as Partial<IReviewDocument>;
-    if (file) payload.avatar = UploadService.getRelativePath(file.path);
     const existing = await reviewsRepository.findOne({ author: dto.author });
     if (existing) {
-      if (file) payload.avatar = await UploadService.handleImageUpdate(existing.avatar, file);
+      if (file) payload.avatar = await UploadService.replace(existing.avatar, file);
       return (await reviewsRepository.updateById(existing._id.toString(), payload))!;
     }
+    if (file) payload.avatar = await UploadService.upload(file);
     return reviewsRepository.create(payload);
   }
 
@@ -27,7 +27,7 @@ class ReviewsService extends BaseService<IReviewDocument, typeof reviewsReposito
     const existing = await reviewsRepository.findById(id);
     if (!existing) throw ApiError.notFound('Review not found');
     const update: Partial<IReviewDocument> = { ...dto } as unknown as Partial<IReviewDocument>;
-    if (file) update.avatar = await UploadService.handleImageUpdate(existing.avatar, file);
+    if (file) update.avatar = await UploadService.replace(existing.avatar, file);
     const updated = await reviewsRepository.updateById(id, update);
     if (!updated) throw ApiError.notFound('Review not found');
     return updated;
@@ -36,7 +36,7 @@ class ReviewsService extends BaseService<IReviewDocument, typeof reviewsReposito
   async deleteReview(id: string): Promise<IReviewDocument> {
     const review = await reviewsRepository.findById(id);
     if (!review) throw ApiError.notFound('Review not found');
-    if (review.avatar) await UploadService.removeFile(review.avatar);
+    await UploadService.remove(review.avatar);
     const deleted = await reviewsRepository.deleteById(id);
     if (!deleted) throw ApiError.notFound('Review not found');
     return deleted;

@@ -3,7 +3,7 @@ import { IBlogDocument } from './blogs.interface';
 import { CreateBlogDto, UpdateBlogDto, BlogQueryDto } from './blogs.types';
 import { BaseService } from '../../shared/helpers/baseService';
 import { ApiError } from '../../shared/errors/ApiError';
-import { UploadService } from '../../core/storage/upload.service';
+import { UploadService } from '../../services/upload.service';
 import { buildQuery, buildSort } from '../../shared/helpers/queryBuilder';
 import { parsePagination, buildPaginationMeta } from '../../shared/helpers/pagination';
 import { PaginatedResult } from '../../types';
@@ -48,12 +48,12 @@ class BlogsService extends BaseService<IBlogDocument, typeof blogsRepository> {
     if (existing) {
       const update: Partial<IBlogDocument> = { ...dto } as unknown as Partial<IBlogDocument>;
       if (dto.slug) update.slug = await ensureUniqueSlug(generateSlug(dto.slug), existing._id.toString());
-      if (file) update.image = await UploadService.handleImageUpdate(existing.image, file);
+      if (file) update.image = await UploadService.replace(existing.image, file);
       return (await blogsRepository.updateById(existing._id.toString(), update))!;
     }
     const slug = await ensureUniqueSlug(base);
     const payload: Partial<IBlogDocument> = { ...dto, slug } as unknown as Partial<IBlogDocument>;
-    if (file) payload.image = UploadService.getRelativePath(file.path);
+    if (file) payload.image = await UploadService.upload(file);
     return blogsRepository.create(payload);
   }
 
@@ -65,7 +65,7 @@ class BlogsService extends BaseService<IBlogDocument, typeof blogsRepository> {
     else if (dto.title && dto.title !== existing.title) {
       update.slug = await ensureUniqueSlug(generateSlug(dto.title), id);
     }
-    if (file) update.image = await UploadService.handleImageUpdate(existing.image, file);
+    if (file) update.image = await UploadService.replace(existing.image, file);
     const updated = await blogsRepository.updateById(id, update);
     if (!updated) throw ApiError.notFound('Blog not found');
     return updated;
@@ -74,7 +74,7 @@ class BlogsService extends BaseService<IBlogDocument, typeof blogsRepository> {
   async deleteBlog(id: string): Promise<IBlogDocument> {
     const blog = await blogsRepository.findById(id);
     if (!blog) throw ApiError.notFound('Blog not found');
-    if (blog.image) await UploadService.removeFile(blog.image);
+    await UploadService.remove(blog.image);
     const deleted = await blogsRepository.deleteById(id);
     if (!deleted) throw ApiError.notFound('Blog not found');
     return deleted;

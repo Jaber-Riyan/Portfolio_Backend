@@ -3,10 +3,9 @@ import { getTheme, updateGlobalTheme, updateSectionTheme } from './theme.control
 import { protect, authorizeAdmin } from '../../shared/middleware/auth';
 import { validate } from '../../shared/middleware/validate';
 import { updateGlobalThemeSchema, updateSectionThemeSchema, sectionParamSchema } from './theme.validation';
-import { uploaders } from '../../core/storage/multer';
+import { upload } from '../../middleware/upload';
 
 const router = Router();
-const upload = uploaders.theme;
 
 router.get('/', getTheme);
 router.patch('/', protect, authorizeAdmin, validate(updateGlobalThemeSchema), updateGlobalTheme);

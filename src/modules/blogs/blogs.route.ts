@@ -3,10 +3,9 @@ import { getBlogs, createBlog, updateBlog, deleteBlog, togglePublish } from './b
 import { protect, authorizeAdmin } from '../../shared/middleware/auth';
 import { validate } from '../../shared/middleware/validate';
 import { createBlogSchema, updateBlogSchema } from './blogs.validation';
-import { uploaders } from '../../core/storage/multer';
+import { upload } from '../../middleware/upload';
 
 const router = Router();
-const upload = uploaders.blogs;
 
 router.get('/', getBlogs);
 router.post('/', protect, authorizeAdmin, upload.single('image'), validate(createBlogSchema), createBlog);

@@ -1,4 +1,5 @@
 import { Document } from 'mongoose';
+import { IUploadedImage } from '../../types';
 
 export interface IGithubLink {
   label: string;
@@ -7,7 +8,7 @@ export interface IGithubLink {
 
 export interface IProject {
   title: string;
-  image: string;
+  image: IUploadedImage;
   techStack: string[];
   summary: string;
   description: string;

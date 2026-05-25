@@ -3,10 +3,9 @@ import { getProjects, createProject, updateProject, deleteProject, reorderProjec
 import { protect, authorizeAdmin } from '../../shared/middleware/auth';
 import { validate } from '../../shared/middleware/validate';
 import { createProjectSchema, updateProjectSchema, reorderSchema } from './projects.validation';
-import { uploaders } from '../../core/storage/multer';
+import { upload } from '../../middleware/upload';
 
 const router = Router();
-const upload = uploaders.projects;
 
 router.get('/', getProjects);
 router.post('/', protect, authorizeAdmin, upload.single('image'), validate(createProjectSchema), createProject);

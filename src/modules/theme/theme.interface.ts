@@ -1,11 +1,12 @@
 import { Document } from 'mongoose';
 import { SectionName } from '../../shared/constants';
+import { IUploadedImage } from '../../types';
 
 export interface ISectionTheme {
   bg: string;
   text: string;
   accent: string;
-  bgImage?: string;
+  bgImage?: IUploadedImage;
 }
 
 export interface IGlobalTheme {

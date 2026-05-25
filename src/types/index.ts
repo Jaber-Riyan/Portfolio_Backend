@@ -1,6 +1,11 @@
 import { Request } from 'express';
 import { IUserDocument } from '../modules/auth/auth.interface';
 
+export interface IUploadedImage {
+  url: string;
+  key: string;
+}
+
 declare global {
   namespace Express {
     interface Request {
