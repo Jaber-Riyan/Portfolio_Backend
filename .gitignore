@@ -6,7 +6,7 @@ npm-debug.log*
 dist/
 
 # Static Files
-
+uploads
 
 # Environment variables
 .env
