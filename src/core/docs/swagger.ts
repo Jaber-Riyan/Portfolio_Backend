@@ -7,7 +7,7 @@ const swaggerSpec = {
     title: 'Portfolio CMS API',
     version: '1.0.0',
     description: 'Production-ready CMS backend for personal portfolio website',
-    contact: { name: 'Jaber Riyan', email: 'admin@mail.com' },
+    contact: { name: 'Jaber Riyan', email: 'jaberriyan357@gmail.com' },
   },
   servers: [
     { url: 'http://localhost:5000', description: 'Development' },
