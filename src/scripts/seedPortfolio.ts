@@ -48,8 +48,8 @@ const seedPortfolio = async () => {
     secondaryCta: { label: 'Contact Me', href: '#contact' },
     socialLinks: {
       github: 'https://github.com/Jaber-Riyan',
-      linkedin: 'https://linkedin.com/in/jaber-riyan',
-      twitter: 'https://twitter.com/jaber_riyan',
+      linkedin: 'https://linkedin.com/in/jaber-ahmed-riyan',
+      twitter: 'https://x.com/jaber_riyan',
     },
   });
   console.log('Hero seeded');
