@@ -9,7 +9,7 @@ dist/
 *.d.ts
 
 # Static Files
-uploads
+
 
 # Environment variables
 .env
