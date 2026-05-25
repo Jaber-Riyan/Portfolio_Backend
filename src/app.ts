@@ -26,6 +26,10 @@ app.use((req: express.Request, res: express.Response, next: express.NextFunction
 
 app.use("/api/v1", routes);
 
+app.get("/test", (req, res) => {
+  res.json({ ok: true });
+});
+
 app.get("/", (req: express.Request, res: express.Response) => {
   res.status(200).json({
     success: true,
