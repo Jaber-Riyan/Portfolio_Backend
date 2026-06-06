@@ -36,7 +36,7 @@ export const chat = async (req: Request, res: Response) => {
         );
 
         const context = relevantDocs
-            .map((doc) => doc.content)
+            .map((doc:any) => doc.content)
             .join("\n");
 
         const completion = await aion.chat.completions.create({

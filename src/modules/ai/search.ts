@@ -1,4 +1,4 @@
-function cosineSimilarity(a, b) {
+function cosineSimilarity(a: any, b: any) {
     let dot = 0;
     let magA = 0;
     let magB = 0;
@@ -12,15 +12,15 @@ function cosineSimilarity(a, b) {
     return dot / (Math.sqrt(magA) * Math.sqrt(magB));
 }
 
-export function searchDocuments(queryVector, docs) {
+export function searchDocuments(queryVector: any, docs: any) {
     return docs
-        .map((doc) => ({
+        .map((doc: any) => ({
             ...doc,
             score: cosineSimilarity(
                 queryVector,
                 doc.embedding
             ),
         }))
-        .sort((a, b) => b.score - a.score)
+        .sort((a: any, b: any) => b.score - a.score)
         .slice(0, 3);
 }
