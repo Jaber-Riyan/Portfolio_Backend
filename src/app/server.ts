@@ -4,9 +4,15 @@ import app from './app';
 import connectDB from '../config/database';
 import { env } from '../config/env';
 import { logger } from '../shared/logger/logger';
+import { initializeKnowledgeBase } from '../utils/knowledgeInitializer';
+import { initializeEmbedder } from '../modules/ai/embed';
 
 const startServer = async (): Promise<void> => {
   await connectDB();
+
+  await initializeEmbedder()
+
+  await initializeKnowledgeBase()
 
   const server = http.createServer(app);
 

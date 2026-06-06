@@ -19,6 +19,7 @@ const envSchema = z.object({
   NODEMAILER_PASS: z.string().default(''),
   NOTIFY_EMAIL: z.string().default(''),
   UPLOADTHING_TOKEN: z.string().default(''),
+  AION_API_KEY: z.string().default('')
 });
 
 const parsed = envSchema.safeParse(process.env);
@@ -50,4 +51,5 @@ export const env = {
   },
   notifyEmail: parsed.data.NOTIFY_EMAIL || parsed.data.NODEMAILER_GMAIL,
   uploadthingToken: parsed.data.UPLOADTHING_TOKEN,
+  AION_API_KEY: parsed.data.AION_API_KEY
 };
