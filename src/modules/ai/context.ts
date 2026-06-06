@@ -1,4 +1,10 @@
-export const documents = [
+export type KnowledgeDocument = {
+  id: number;
+  content: string;
+  embedding?: number[];
+};
+
+export const documents: KnowledgeDocument[] = [
   {
     id: 1,
     content:

@@ -9,7 +9,7 @@ export const initializeEmbedder = async () => {
     )
 }
 
-export async function getEmbedding(text: any) {
+export async function getEmbedding(text: any): Promise<number[]> {
     if (!embedder) {
         throw new Error(
             "Embedder not initialized. Call initializeEmbedder() first."
@@ -21,5 +21,5 @@ export async function getEmbedding(text: any) {
         normalize: true,
     });
 
-    return Array.from(output.data);
+    return Array.from(output.data as Iterable<number>);
 }

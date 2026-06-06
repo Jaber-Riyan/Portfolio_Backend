@@ -6,12 +6,6 @@
       "destination": "src/api/index.ts"
     }
   ],
-  "builds": [
-    {
-      "src": "src/api/index.ts",
-      "use": "@vercel/node"
-    }
-  ],
   "routes": [
     {
       "src": "/(.*)",
