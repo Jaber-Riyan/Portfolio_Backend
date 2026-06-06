@@ -19,7 +19,8 @@ const connectDB = async (): Promise<void> => {
     logger.info(`MongoDB connected: ${mongoose.connection.host}`);
   } catch (error) {
     logger.error('MongoDB connection error:', error);
-    process.exit(1);
+    // Don't call process.exit in serverless functions — throw so callers can handle the error.
+    throw error;
   }
 };
 
