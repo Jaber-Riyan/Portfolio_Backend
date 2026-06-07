@@ -7,6 +7,7 @@ import { logger } from '../shared/logger/logger';
 import { initializeEmbedder } from '../modules/ai/embed';
 import { knowledgeService } from '../modules/knowledge/knowledge.service';
 import { chatService } from '../modules/chat/chat.service';
+import { seedAdmin } from '../scripts/seedAdmin';
 
 const STALE_SESSION_SWEEP_INTERVAL_MS = 60 * 1000; // every 60 seconds
 

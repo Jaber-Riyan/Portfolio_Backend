@@ -4,7 +4,7 @@ import { env } from '../config/env';
 import { UserModel } from '../modules/auth/auth.model';
 import { hashPassword } from '../core/auth/bcrypt';
 
-const seedAdmin = async (): Promise<void> => {
+export const seedAdmin = async (): Promise<void> => {
   await mongoose.connect(env.mongoUri);
   console.log('Connected to MongoDB');
 
