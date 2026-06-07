@@ -1,0 +1,983 @@
+================================================================================
+  AI PORTFOLIO CHATBOT — FRONTEND INTEGRATION GUIDE
+  Stack: React + TypeScript + TailwindCSS
+================================================================================
+
+TABLE OF CONTENTS
+-----------------
+  1.  Architecture Overview
+  2.  One-Time: MongoDB Atlas Vector Search Index
+  3.  Environment Variables
+  4.  TypeScript Types (copy to your frontend)
+  5.  API Endpoints Reference
+  6.  Step 1 — Device ID (persistent, anonymous identity)
+  7.  Step 2 — Session Lifecycle
+  8.  Step 3 — Heartbeat (keep-alive every 60s)
+  9.  Step 4 — Beacon (tab close detection)
+  10. Complete React Hook — useChatAssistant
+  11. Complete Chat UI Component
+  12. Wiring it into Your App
+  13. Quick Start Checklist
+
+
+================================================================================
+  1. ARCHITECTURE OVERVIEW
+================================================================================
+
+  USER TYPES MESSAGE
+        |
+        v
+  Frontend generates deviceId  (stored in localStorage, never changes)
+        |
+        v
+  First message → POST /api/chat/start-session  (creates session in MongoDB)
+        |
+        v
+  POST /api/chat/message
+        |
+        v
+  Backend: embed message → Atlas Vector Search → top 5 chunks → Aion API
+        |
+        v
+  Response returned to frontend
+        |
+        v
+  Frontend sends heartbeat every 60s  → POST /api/chat/heartbeat
+        |
+        v
+  On tab close  → navigator.sendBeacon("/api/chat/beacon")  (marks session ended)
+        |
+        v
+  Backend sends session summary email to admin
+
+
+  KEY RULES
+  ---------
+  - Do NOT create a session on page load. Create it only on first message send.
+  - One deviceId per browser (localStorage). Never regenerate it.
+  - The sessionId is per conversation. Reset it when user wants a new chat.
+  - Beacon fires on visibilitychange (hidden), not just beforeunload.
+  - Heartbeat must run only when a session is active (sessionId exists).
+
+
+================================================================================
+  2. ONE-TIME: MONGODB ATLAS VECTOR SEARCH INDEX
+================================================================================
+
+  This step is required before the chatbot can answer questions.
+  Do it once in your MongoDB Atlas dashboard.
+
+  STEPS:
+  ------
+  1. Open MongoDB Atlas  →  your cluster  →  "Atlas Search" tab
+  2. Click "Create Search Index"
+  3. Choose "Atlas Vector Search"  (NOT "Atlas Search")
+  4. Select JSON editor
+  5. Database: your database name
+     Collection: knowledge_chunks
+     Index name: knowledge_vector_index    ← must be exactly this name
+
+  6. Paste this JSON as the index definition:
+
+     {
+       "fields": [
+         {
+           "numDimensions": 384,
+           "path": "embedding",
+           "similarity": "cosine",
+           "type": "vector"
+         },
+         {
+           "path": "sourceType",
+           "type": "filter"
+         }
+       ]
+     }
+
+  7. Click "Create Search Index". It takes 1-2 minutes to build.
+
+  8. After it builds, trigger a full sync by calling:
+
+     POST /api/knowledge/sync   (requires admin JWT)
+
+     Or just restart the backend server — it auto-syncs on startup.
+
+  NOTE: The chatbot works without this index but will always say
+  "I don't have enough portfolio information." The index is what
+  connects user questions to your actual portfolio data.
+
+
+================================================================================
+  3. ENVIRONMENT VARIABLES
+================================================================================
+
+  In your frontend project, add to .env (or .env.local for Next.js):
+
+     VITE_API_URL=http://localhost:5000          # for Vite / React
+     NEXT_PUBLIC_API_URL=http://localhost:5000   # for Next.js
+
+  For production, replace with your deployed backend URL.
+
+
+================================================================================
+  4. TYPESCRIPT TYPES  (copy into src/types/chat.ts)
+================================================================================
+
+  ---- src/types/chat.ts ----
+
+  export interface DeviceInfo {
+    browser: string;
+    os: string;
+    deviceType: 'mobile' | 'tablet' | 'desktop';
+    language: string;
+    networkProviderName: string;
+    screenWidth: number;
+    screenHeight: number;
+  }
+
+  export interface ChatMessage {
+    role: 'user' | 'assistant';
+    content: string;
+    createdAt?: Date;
+  }
+
+  export interface StartSessionRequest {
+    deviceId: string;
+    deviceInfo: Partial<DeviceInfo>;
+  }
+
+  export interface StartSessionResponse {
+    sessionId: string;
+  }
+
+  export interface SendMessageRequest {
+    sessionId: string;
+    deviceId: string;
+    message: string;
+  }
+
+  export interface SendMessageResponse {
+    answer: string;
+    sessionId: string;
+  }
+
+  export interface EndSessionRequest {
+    sessionId: string;
+    deviceId: string;
+  }
+
+  export interface HeartbeatRequest {
+    sessionId: string;
+    deviceId: string;
+  }
+
+  export interface ChatSession {
+    sessionId: string;
+    deviceId: string;
+    startedAt: string;
+    endedAt?: string;
+    isActive: boolean;
+    totalMessages: number;
+    totalTokensUsed: number;
+    durationSeconds: number;
+    deviceInfo: DeviceInfo;
+    createdAt: string;
+  }
+
+  export interface ApiResponse<T> {
+    success: boolean;
+    message: string;
+    data: T;
+  }
+
+
+================================================================================
+  5. API ENDPOINTS REFERENCE
+================================================================================
+
+  All endpoints are under: /api/chat/
+  No authentication required (anonymous users only).
+
+  ┌─────────────────────────────────────────────────────────────────────────┐
+  │ POST /api/chat/start-session                                            │
+  ├─────────────────────────────────────────────────────────────────────────┤
+  │ Creates a new chat session for a device.                                │
+  │ If the device already has an active session (heartbeat < 5 min ago),   │
+  │ the existing session is returned instead of creating a new one.         │
+  │                                                                         │
+  │ Request body:                                                           │
+  │   {                                                                     │
+  │     "deviceId": "550e8400-e29b-41d4-a716-446655440000",               │
+  │     "deviceInfo": {                                                     │
+  │       "browser": "Chrome 125",                                         │
+  │       "os": "Windows 11",                                              │
+  │       "deviceType": "desktop",                                         │
+  │       "language": "en-US",                                             │
+  │       "networkProviderName": "",                                        │
+  │       "screenWidth": 1920,                                             │
+  │       "screenHeight": 1080                                             │
+  │     }                                                                   │
+  │   }                                                                     │
+  │                                                                         │
+  │ Response 201:                                                           │
+  │   { "success": true, "data": { "sessionId": "abc-123-..." } }         │
+  └─────────────────────────────────────────────────────────────────────────┘
+
+  ┌─────────────────────────────────────────────────────────────────────────┐
+  │ POST /api/chat/message                                                  │
+  ├─────────────────────────────────────────────────────────────────────────┤
+  │ Sends a message. Runs the full RAG pipeline and returns the answer.    │
+  │ Message max length: 2000 characters.                                    │
+  │                                                                         │
+  │ Request body:                                                           │
+  │   {                                                                     │
+  │     "sessionId": "abc-123-...",                                        │
+  │     "deviceId":  "550e8400-...",                                       │
+  │     "message":   "What projects has Jaber built?"                      │
+  │   }                                                                     │
+  │                                                                         │
+  │ Response 200:                                                           │
+  │   {                                                                     │
+  │     "success": true,                                                    │
+  │     "data": {                                                           │
+  │       "answer": "Jaber has built several projects including...",       │
+  │       "sessionId": "abc-123-..."                                       │
+  │     }                                                                   │
+  │   }                                                                     │
+  │                                                                         │
+  │ Error 400: Session expired (no heartbeat for > 5 min)                  │
+  │ Error 404: Session not found                                            │
+  └─────────────────────────────────────────────────────────────────────────┘
+
+  ┌─────────────────────────────────────────────────────────────────────────┐
+  │ POST /api/chat/end-session                                              │
+  ├─────────────────────────────────────────────────────────────────────────┤
+  │ Explicitly ends a session. Idempotent — safe to call multiple times.   │
+  │ Triggers the session summary email to the admin.                        │
+  │                                                                         │
+  │ Request body:                                                           │
+  │   { "sessionId": "abc-123-...", "deviceId": "550e8400-..." }          │
+  │                                                                         │
+  │ Response 200:                                                           │
+  │   { "success": true, "message": "Chat session ended", "data": null }  │
+  └─────────────────────────────────────────────────────────────────────────┘
+
+  ┌─────────────────────────────────────────────────────────────────────────┐
+  │ POST /api/chat/heartbeat                                                │
+  ├─────────────────────────────────────────────────────────────────────────┤
+  │ Updates the session's last-heartbeat timestamp.                         │
+  │ Call this every 60 seconds while the user has the chat open.           │
+  │ Sessions with no heartbeat for > 5 minutes are auto-closed by server.  │
+  │                                                                         │
+  │ Request body:                                                           │
+  │   { "sessionId": "abc-123-...", "deviceId": "550e8400-..." }          │
+  │                                                                         │
+  │ Response 200:                                                           │
+  │   { "success": true, "message": "Heartbeat received", "data": null }  │
+  └─────────────────────────────────────────────────────────────────────────┘
+
+  ┌─────────────────────────────────────────────────────────────────────────┐
+  │ POST /api/chat/beacon                                                   │
+  ├─────────────────────────────────────────────────────────────────────────┤
+  │ Called via navigator.sendBeacon() when the browser tab closes.         │
+  │ Responds 204 immediately. Fire-and-forget — no need to await.          │
+  │                                                                         │
+  │ Payload (JSON blob):                                                    │
+  │   { "sessionId": "abc-123-...", "deviceId": "550e8400-..." }          │
+  │                                                                         │
+  │ Response: 204 No Content                                               │
+  └─────────────────────────────────────────────────────────────────────────┘
+
+  ┌─────────────────────────────────────────────────────────────────────────┐
+  │ GET /api/chat/session/:sessionId                                        │
+  ├─────────────────────────────────────────────────────────────────────────┤
+  │ Fetch session details + message history.                                │
+  │                                                                         │
+  │ Response 200:                                                           │
+  │   {                                                                     │
+  │     "success": true,                                                    │
+  │     "data": {                                                           │
+  │       "session": { sessionId, deviceId, startedAt, totalMessages... }, │
+  │       "messages": [ { role, content, createdAt } ]                     │
+  │     }                                                                   │
+  │   }                                                                     │
+  └─────────────────────────────────────────────────────────────────────────┘
+
+
+================================================================================
+  6. STEP 1 — DEVICE ID
+================================================================================
+
+  Create this utility once. Import it wherever you need deviceId.
+
+  ---- src/lib/deviceId.ts ----
+
+  import type { DeviceInfo } from '../types/chat';
+
+  const DEVICE_ID_KEY = 'portfolio_device_id';
+
+  /** Returns the persistent device ID, generating one on first call. */
+  export function getDeviceId(): string {
+    let id = localStorage.getItem(DEVICE_ID_KEY);
+    if (!id) {
+      id = crypto.randomUUID();
+      localStorage.setItem(DEVICE_ID_KEY, id);
+    }
+    return id;
+  }
+
+  /** Collects browser/device metadata to send with session start. */
+  export function collectDeviceInfo(): DeviceInfo {
+    const ua = navigator.userAgent;
+
+    const isMobile = /Android|iPhone|iPad|iPod/i.test(ua);
+    const isTablet = /iPad|Tablet/i.test(ua);
+
+    let os = 'Unknown';
+    if (/Windows/i.test(ua))     os = 'Windows';
+    else if (/Mac OS/i.test(ua)) os = 'macOS';
+    else if (/Android/i.test(ua)) os = 'Android';
+    else if (/iPhone|iPad/i.test(ua)) os = 'iOS';
+    else if (/Linux/i.test(ua))  os = 'Linux';
+
+    let browser = 'Unknown';
+    if (/Edg\//i.test(ua))       browser = 'Edge';
+    else if (/OPR\//i.test(ua))  browser = 'Opera';
+    else if (/Chrome/i.test(ua)) browser = 'Chrome';
+    else if (/Firefox/i.test(ua)) browser = 'Firefox';
+    else if (/Safari/i.test(ua)) browser = 'Safari';
+
+    return {
+      browser,
+      os,
+      deviceType: isTablet ? 'tablet' : isMobile ? 'mobile' : 'desktop',
+      language: navigator.language ?? 'en',
+      networkProviderName: '',           // requires Network Information API
+      screenWidth: screen.width,
+      screenHeight: screen.height,
+    };
+  }
+
+
+================================================================================
+  7. STEP 2 — SESSION LIFECYCLE
+================================================================================
+
+  ---- src/lib/chatApi.ts ----
+
+  import type {
+    StartSessionResponse,
+    SendMessageResponse,
+    ApiResponse,
+  } from '../types/chat';
+  import { getDeviceId, collectDeviceInfo } from './deviceId';
+
+  const BASE_URL = import.meta.env.VITE_API_URL ?? '';
+  // For Next.js use:  process.env.NEXT_PUBLIC_API_URL ?? ''
+
+  async function post<T>(path: string, body: unknown): Promise<T> {
+    const res = await fetch(`${BASE_URL}${path}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error((err as any)?.message ?? `HTTP ${res.status}`);
+    }
+    const json: ApiResponse<T> = await res.json();
+    return json.data;
+  }
+
+  export async function startSession(): Promise<string> {
+    const deviceId   = getDeviceId();
+    const deviceInfo = collectDeviceInfo();
+    const data = await post<StartSessionResponse>('/api/chat/start-session', {
+      deviceId,
+      deviceInfo,
+    });
+    return data.sessionId;
+  }
+
+  export async function sendMessage(
+    sessionId: string,
+    message: string,
+  ): Promise<string> {
+    const data = await post<SendMessageResponse>('/api/chat/message', {
+      sessionId,
+      deviceId: getDeviceId(),
+      message,
+    });
+    return data.answer;
+  }
+
+  export async function endSession(sessionId: string): Promise<void> {
+    await post<null>('/api/chat/end-session', {
+      sessionId,
+      deviceId: getDeviceId(),
+    });
+  }
+
+  export async function sendHeartbeat(sessionId: string): Promise<void> {
+    await post<null>('/api/chat/heartbeat', {
+      sessionId,
+      deviceId: getDeviceId(),
+    });
+  }
+
+  export function sendBeacon(sessionId: string): void {
+    const payload = JSON.stringify({
+      sessionId,
+      deviceId: getDeviceId(),
+    });
+    navigator.sendBeacon(
+      `${BASE_URL}/api/chat/beacon`,
+      new Blob([payload], { type: 'application/json' }),
+    );
+  }
+
+
+================================================================================
+  8. STEP 3 — HEARTBEAT
+================================================================================
+
+  The heartbeat is handled automatically inside the useChatAssistant hook
+  (see Section 10). Here is the standalone logic for reference:
+
+  const HEARTBEAT_INTERVAL_MS = 60_000; // 60 seconds
+
+  let heartbeatTimer: ReturnType<typeof setInterval> | null = null;
+
+  function startHeartbeat(sessionId: string) {
+    stopHeartbeat();
+    heartbeatTimer = setInterval(() => {
+      sendHeartbeat(sessionId).catch(console.warn);
+    }, HEARTBEAT_INTERVAL_MS);
+  }
+
+  function stopHeartbeat() {
+    if (heartbeatTimer !== null) {
+      clearInterval(heartbeatTimer);
+      heartbeatTimer = null;
+    }
+  }
+
+  IMPORTANT: Start heartbeat as soon as a session is created.
+             Stop heartbeat when session ends or component unmounts.
+
+
+================================================================================
+  9. STEP 4 — BEACON (TAB CLOSE)
+================================================================================
+
+  The beacon must fire when the user closes the tab or navigates away.
+  Use visibilitychange (more reliable than beforeunload on mobile).
+
+  Here is the standalone logic — the hook handles this automatically:
+
+  function registerBeacon(sessionId: string) {
+    const handler = () => {
+      if (document.visibilityState === 'hidden') {
+        sendBeacon(sessionId);
+      }
+    };
+    document.addEventListener('visibilitychange', handler);
+
+    // Return cleanup function
+    return () => document.removeEventListener('visibilitychange', handler);
+  }
+
+  WHY visibilitychange instead of beforeunload:
+  - beforeunload is blocked on mobile browsers
+  - visibilitychange fires when the tab is hidden (switch tab, close, minimize)
+  - sendBeacon is designed exactly for this: it sends even as page unloads
+
+
+================================================================================
+  10. COMPLETE REACT HOOK — useChatAssistant
+================================================================================
+
+  This is the single hook your chat component needs. Copy the entire file.
+
+  ---- src/hooks/useChatAssistant.ts ----
+
+  import { useState, useEffect, useRef, useCallback } from 'react';
+  import type { ChatMessage } from '../types/chat';
+  import {
+    startSession,
+    sendMessage,
+    endSession,
+    sendHeartbeat,
+    sendBeacon,
+  } from '../lib/chatApi';
+
+  const HEARTBEAT_INTERVAL_MS = 60_000;
+
+  interface UseChatAssistantReturn {
+    messages:    ChatMessage[];
+    isLoading:   boolean;
+    error:       string | null;
+    sessionId:   string | null;
+    isActive:    boolean;
+    sendUserMessage: (text: string) => Promise<void>;
+    resetChat:   () => Promise<void>;
+    clearError:  () => void;
+  }
+
+  export function useChatAssistant(): UseChatAssistantReturn {
+    const [messages,  setMessages]  = useState<ChatMessage[]>([]);
+    const [isLoading, setIsLoading] = useState(false);
+    const [error,     setError]     = useState<string | null>(null);
+    const [sessionId, setSessionId] = useState<string | null>(null);
+    const [isActive,  setIsActive]  = useState(false);
+
+    const heartbeatRef  = useRef<ReturnType<typeof setInterval> | null>(null);
+    const sessionIdRef  = useRef<string | null>(null);  // sync ref for beacon
+
+    // Keep the ref in sync with state (state is async, ref is sync)
+    useEffect(() => {
+      sessionIdRef.current = sessionId;
+    }, [sessionId]);
+
+
+    // ── Heartbeat management ──────────────────────────────────────────────
+
+    const startHeartbeat = useCallback((sid: string) => {
+      if (heartbeatRef.current) clearInterval(heartbeatRef.current);
+      heartbeatRef.current = setInterval(() => {
+        sendHeartbeat(sid).catch(() => null);
+      }, HEARTBEAT_INTERVAL_MS);
+    }, []);
+
+    const stopHeartbeat = useCallback(() => {
+      if (heartbeatRef.current) {
+        clearInterval(heartbeatRef.current);
+        heartbeatRef.current = null;
+      }
+    }, []);
+
+
+    // ── Tab-close beacon ──────────────────────────────────────────────────
+
+    useEffect(() => {
+      const handleVisibilityChange = () => {
+        if (document.visibilityState === 'hidden' && sessionIdRef.current) {
+          sendBeacon(sessionIdRef.current);
+        }
+      };
+      document.addEventListener('visibilitychange', handleVisibilityChange);
+      return () => {
+        document.removeEventListener('visibilitychange', handleVisibilityChange);
+      };
+    }, []); // register once on mount
+
+
+    // ── Cleanup on unmount ────────────────────────────────────────────────
+
+    useEffect(() => {
+      return () => {
+        stopHeartbeat();
+        // End session cleanly if component unmounts with active session
+        if (sessionIdRef.current) {
+          endSession(sessionIdRef.current).catch(() => null);
+        }
+      };
+    }, [stopHeartbeat]);
+
+
+    // ── Send message (creates session on first call) ──────────────────────
+
+    const sendUserMessage = useCallback(async (text: string) => {
+      if (!text.trim() || isLoading) return;
+
+      setError(null);
+
+      // Append user message to UI immediately
+      const userMsg: ChatMessage = { role: 'user', content: text };
+      setMessages((prev) => [...prev, userMsg]);
+      setIsLoading(true);
+
+      try {
+        // Create session on first message only
+        let sid = sessionId;
+        if (!sid) {
+          sid = await startSession();
+          setSessionId(sid);
+          setIsActive(true);
+          startHeartbeat(sid);
+        }
+
+        const answer = await sendMessage(sid, text);
+
+        setMessages((prev) => [
+          ...prev,
+          { role: 'assistant', content: answer },
+        ]);
+      } catch (err: unknown) {
+        const message =
+          err instanceof Error ? err.message : 'Something went wrong.';
+
+        // Session expired — reset so next message creates a new session
+        if (message.toLowerCase().includes('expired')) {
+          setSessionId(null);
+          setIsActive(false);
+          stopHeartbeat();
+          setError('Session expired. Your next message will start a new conversation.');
+        } else {
+          setError(message);
+          // Remove the optimistically appended user message on failure
+          setMessages((prev) => prev.slice(0, -1));
+        }
+      } finally {
+        setIsLoading(false);
+      }
+    }, [isLoading, sessionId, startHeartbeat, stopHeartbeat]);
+
+
+    // ── Reset / new conversation ──────────────────────────────────────────
+
+    const resetChat = useCallback(async () => {
+      stopHeartbeat();
+      if (sessionId) {
+        await endSession(sessionId).catch(() => null);
+      }
+      setSessionId(null);
+      setIsActive(false);
+      setMessages([]);
+      setError(null);
+    }, [sessionId, stopHeartbeat]);
+
+
+    const clearError = useCallback(() => setError(null), []);
+
+    return {
+      messages,
+      isLoading,
+      error,
+      sessionId,
+      isActive,
+      sendUserMessage,
+      resetChat,
+      clearError,
+    };
+  }
+
+
+================================================================================
+  11. COMPLETE CHAT UI COMPONENT
+================================================================================
+
+  ---- src/components/ChatAssistant.tsx ----
+
+  import { useState, useRef, useEffect, KeyboardEvent } from 'react';
+  import { useChatAssistant } from '../hooks/useChatAssistant';
+
+  export default function ChatAssistant() {
+    const [input, setInput]     = useState('');
+    const [isOpen, setIsOpen]   = useState(false);
+    const messagesEndRef         = useRef<HTMLDivElement>(null);
+    const inputRef               = useRef<HTMLInputElement>(null);
+
+    const {
+      messages,
+      isLoading,
+      error,
+      sendUserMessage,
+      resetChat,
+      clearError,
+    } = useChatAssistant();
+
+    // Auto-scroll to latest message
+    useEffect(() => {
+      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }, [messages, isLoading]);
+
+    // Focus input when chat opens
+    useEffect(() => {
+      if (isOpen) {
+        setTimeout(() => inputRef.current?.focus(), 100);
+      }
+    }, [isOpen]);
+
+    const handleSend = async () => {
+      const text = input.trim();
+      if (!text || isLoading) return;
+      setInput('');
+      await sendUserMessage(text);
+    };
+
+    const handleKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        handleSend();
+      }
+    };
+
+    const handleNewChat = async () => {
+      await resetChat();
+    };
+
+    return (
+      <>
+        {/* ── Floating toggle button ── */}
+        <button
+          onClick={() => setIsOpen((o) => !o)}
+          className="fixed bottom-6 right-6 z-50 w-14 h-14 rounded-full
+                     bg-indigo-600 hover:bg-indigo-700 text-white shadow-lg
+                     flex items-center justify-center transition-all duration-200"
+          aria-label="Toggle AI Assistant"
+        >
+          {isOpen ? (
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          ) : (
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                    d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03
+                       8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512
+                       15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+            </svg>
+          )}
+        </button>
+
+        {/* ── Chat panel ── */}
+        {isOpen && (
+          <div
+            className="fixed bottom-24 right-6 z-50 w-96 max-w-[calc(100vw-3rem)]
+                       bg-white dark:bg-gray-900 rounded-2xl shadow-2xl border
+                       border-gray-200 dark:border-gray-700 flex flex-col
+                       overflow-hidden"
+            style={{ height: '520px' }}
+          >
+            {/* Header */}
+            <div className="flex items-center justify-between px-4 py-3
+                            bg-indigo-600 text-white flex-shrink-0">
+              <div className="flex items-center gap-2">
+                <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
+                <span className="font-semibold text-sm">Portfolio Assistant</span>
+              </div>
+              <button
+                onClick={handleNewChat}
+                className="text-indigo-200 hover:text-white text-xs underline
+                           underline-offset-2 transition-colors"
+                title="Start a new conversation"
+              >
+                New chat
+              </button>
+            </div>
+
+            {/* Error banner */}
+            {error && (
+              <div className="flex items-center justify-between gap-2 px-4 py-2
+                              bg-red-50 dark:bg-red-900/20 border-b border-red-200
+                              dark:border-red-800 text-red-700 dark:text-red-400
+                              text-xs flex-shrink-0">
+                <span>{error}</span>
+                <button onClick={clearError} className="ml-2 font-bold">✕</button>
+              </div>
+            )}
+
+            {/* Messages */}
+            <div className="flex-1 overflow-y-auto px-4 py-4 space-y-3">
+              {messages.length === 0 && (
+                <div className="text-center text-gray-400 dark:text-gray-600
+                                text-sm mt-8 px-4">
+                  <p className="text-2xl mb-2">👋</p>
+                  <p className="font-medium text-gray-600 dark:text-gray-400">
+                    Hi! I'm Jaber's portfolio assistant.
+                  </p>
+                  <p className="mt-1">
+                    Ask me about his projects, skills, experience, or anything
+                    on this portfolio.
+                  </p>
+                </div>
+              )}
+
+              {messages.map((msg, i) => (
+                <div
+                  key={i}
+                  className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
+                >
+                  <div
+                    className={`max-w-[80%] px-4 py-2.5 rounded-2xl text-sm leading-relaxed
+                      ${msg.role === 'user'
+                        ? 'bg-indigo-600 text-white rounded-br-sm'
+                        : 'bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-200 rounded-bl-sm'
+                      }`}
+                  >
+                    {msg.content}
+                  </div>
+                </div>
+              ))}
+
+              {/* Typing indicator */}
+              {isLoading && (
+                <div className="flex justify-start">
+                  <div className="bg-gray-100 dark:bg-gray-800 rounded-2xl
+                                  rounded-bl-sm px-4 py-3">
+                    <div className="flex gap-1">
+                      <span className="w-2 h-2 rounded-full bg-gray-400 animate-bounce"
+                            style={{ animationDelay: '0ms' }} />
+                      <span className="w-2 h-2 rounded-full bg-gray-400 animate-bounce"
+                            style={{ animationDelay: '150ms' }} />
+                      <span className="w-2 h-2 rounded-full bg-gray-400 animate-bounce"
+                            style={{ animationDelay: '300ms' }} />
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              <div ref={messagesEndRef} />
+            </div>
+
+            {/* Input */}
+            <div className="flex items-center gap-2 p-3 border-t
+                            border-gray-200 dark:border-gray-700 flex-shrink-0">
+              <input
+                ref={inputRef}
+                type="text"
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                onKeyDown={handleKeyDown}
+                placeholder="Ask about Jaber's portfolio..."
+                maxLength={2000}
+                disabled={isLoading}
+                className="flex-1 px-4 py-2.5 rounded-full text-sm bg-gray-100
+                           dark:bg-gray-800 text-gray-900 dark:text-gray-100
+                           placeholder:text-gray-400 border border-transparent
+                           focus:outline-none focus:border-indigo-400
+                           disabled:opacity-50 transition-colors"
+              />
+              <button
+                onClick={handleSend}
+                disabled={!input.trim() || isLoading}
+                className="w-10 h-10 rounded-full bg-indigo-600 hover:bg-indigo-700
+                           disabled:bg-gray-300 dark:disabled:bg-gray-700 text-white
+                           flex items-center justify-center flex-shrink-0
+                           transition-colors disabled:cursor-not-allowed"
+                aria-label="Send message"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                        d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+                </svg>
+              </button>
+            </div>
+          </div>
+        )}
+      </>
+    );
+  }
+
+
+================================================================================
+  12. WIRING IT INTO YOUR APP
+================================================================================
+
+  Just drop the component into your root layout. No context or provider needed.
+
+  ---- src/App.tsx (or pages/_app.tsx for Next.js) ----
+
+  import ChatAssistant from './components/ChatAssistant';
+
+  export default function App() {
+    return (
+      <div>
+        {/* ... all your existing sections ... */}
+
+        {/* Chat widget — add at the very bottom, before closing div */}
+        <ChatAssistant />
+      </div>
+    );
+  }
+
+  That is all. The component is fully self-contained.
+
+  ──────────────────────────────────────────────────────────────────────────
+
+  SUGGESTED FILE STRUCTURE IN YOUR FRONTEND PROJECT
+  --------------------------------------------------
+
+  src/
+  ├── types/
+  │   └── chat.ts             ← TypeScript types (Section 4)
+  ├── lib/
+  │   ├── deviceId.ts         ← Device ID + device info collection (Section 6)
+  │   └── chatApi.ts          ← API calls (Section 7)
+  ├── hooks/
+  │   └── useChatAssistant.ts ← React hook (Section 10)
+  └── components/
+      └── ChatAssistant.tsx   ← UI component (Section 11)
+
+
+================================================================================
+  13. QUICK START CHECKLIST
+================================================================================
+
+  BACKEND (one-time setup)
+  ────────────────────────
+  [ ] MongoDB Atlas cluster is running
+  [ ] Create Atlas Vector Search index on knowledge_chunks collection
+      (exact name: knowledge_vector_index, 384 dimensions, cosine)
+  [ ] Backend environment has AION_API_KEY set
+  [ ] Backend environment has NODEMAILER_GMAIL, NODEMAILER_PASS, NOTIFY_EMAIL set
+      (needed for session end email — optional but recommended)
+  [ ] Restart backend server — knowledge sync runs automatically on startup
+  [ ] Verify sync: check MongoDB Atlas > knowledge_chunks collection has documents
+
+  FRONTEND
+  ────────
+  [ ] Add VITE_API_URL (or NEXT_PUBLIC_API_URL) to your .env file
+  [ ] Copy src/types/chat.ts
+  [ ] Copy src/lib/deviceId.ts
+  [ ] Copy src/lib/chatApi.ts   (update BASE_URL import if using Next.js)
+  [ ] Copy src/hooks/useChatAssistant.ts
+  [ ] Copy src/components/ChatAssistant.tsx
+  [ ] Add <ChatAssistant /> to your App.tsx or root layout
+  [ ] Test: open the portfolio, type a question, get an answer
+
+
+  VERIFICATION STEPS
+  ──────────────────
+  1. Open your portfolio in the browser
+  2. Open DevTools > Network tab
+  3. Type a message in the chat
+  4. You should see:  POST /api/chat/start-session  →  201
+  5. You should see:  POST /api/chat/message         →  200  with an answer
+  6. Wait 60 seconds → you should see: POST /api/chat/heartbeat → 200
+  7. Close the tab   → DevTools > Network should show beacon request
+  8. Check admin email — session summary should arrive within seconds
+
+
+  COMMON ISSUES
+  ─────────────
+  Q: Chat responds "I don't have enough portfolio information" to everything.
+  A: The Atlas Vector Search index is missing or not yet built.
+     Check: Atlas dashboard > Search > verify index exists on knowledge_chunks.
+     Then call POST /api/knowledge/sync (admin JWT required) or restart the server.
+
+  Q: POST /api/chat/start-session returns 400 Validation failed.
+  A: Make sure deviceId is a non-empty string in the request body.
+
+  Q: POST /api/chat/message returns 400 "Session expired".
+  A: The session was inactive for > 5 minutes. The hook handles this automatically
+     by clearing sessionId so the next message creates a fresh session.
+
+  Q: CORS error in the browser.
+  A: Add your frontend URL to the CORS_ORIGIN env var on the backend.
+     Example: CORS_ORIGIN=http://localhost:3000,https://yourportfolio.com
+
+  Q: The beacon doesn't fire on page close.
+  A: Make sure you are using visibilitychange (not beforeunload).
+     beforeunload is blocked on many mobile browsers.
+     The hook already uses visibilitychange correctly.
+
+  Q: Chat messages disappear after 24 hours.
+  A: This is by design. Messages have a 24-hour TTL index in MongoDB.
+     Sessions (without messages) are retained for 60 days for analytics.
+
+
+================================================================================
+  END OF GUIDE
+================================================================================

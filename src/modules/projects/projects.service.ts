@@ -9,6 +9,9 @@ import { parsePagination, buildPaginationMeta } from '../../shared/helpers/pagin
 import { reorderDocuments } from '../../shared/helpers/reorder';
 import { ProjectModel } from './projects.model';
 import { PaginatedResult } from '../../types';
+import { knowledgeService } from '../knowledge/knowledge.service';
+import { Types } from 'mongoose';
+import { logger } from '../../shared/logger/logger';
 
 class ProjectsService extends BaseService<IProjectDocument, typeof projectsRepository> {
   constructor() { super(projectsRepository); }
@@ -30,10 +33,14 @@ class ProjectsService extends BaseService<IProjectDocument, typeof projectsRepos
     const existing = await projectsRepository.findOne({ title: dto.title });
     if (existing) {
       if (file) payload.image = await UploadService.replace(existing.image, file);
-      return (await projectsRepository.updateById(existing._id.toString(), payload))!;
+      const updated = (await projectsRepository.updateById(existing._id.toString(), payload))!;
+      this.syncKnowledge(updated._id as Types.ObjectId);
+      return updated;
     }
     if (file) payload.image = await UploadService.upload(file);
-    return projectsRepository.create(payload);
+    const created = await projectsRepository.create(payload);
+    this.syncKnowledge(created._id as Types.ObjectId);
+    return created;
   }
 
   async updateProject(id: string, dto: UpdateProjectDto, file?: Express.Multer.File): Promise<IProjectDocument> {
@@ -43,6 +50,7 @@ class ProjectsService extends BaseService<IProjectDocument, typeof projectsRepos
     if (file) update.image = await UploadService.replace(existing.image, file);
     const updated = await projectsRepository.updateById(id, update);
     if (!updated) throw ApiError.notFound('Project not found');
+    this.syncKnowledge(updated._id as Types.ObjectId);
     return updated;
   }
 
@@ -52,7 +60,16 @@ class ProjectsService extends BaseService<IProjectDocument, typeof projectsRepos
     await UploadService.remove(project.image);
     const deleted = await projectsRepository.deleteById(id);
     if (!deleted) throw ApiError.notFound('Project not found');
+    knowledgeService
+      .deleteChunks('project', deleted._id as Types.ObjectId)
+      .catch((err) => logger.warn('[Knowledge] Failed to delete project chunk:', err));
     return deleted;
+  }
+
+  private syncKnowledge(id: Types.ObjectId): void {
+    knowledgeService
+      .indexProjectById(id)
+      .catch((err) => logger.warn('[Knowledge] Failed to index project:', err));
   }
 
   async reorder(ids: string[]): Promise<void> {

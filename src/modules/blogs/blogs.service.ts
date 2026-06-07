@@ -7,6 +7,9 @@ import { UploadService } from '../../services/upload.service';
 import { buildQuery, buildSort } from '../../shared/helpers/queryBuilder';
 import { parsePagination, buildPaginationMeta } from '../../shared/helpers/pagination';
 import { PaginatedResult } from '../../types';
+import { knowledgeService } from '../knowledge/knowledge.service';
+import { Types } from 'mongoose';
+import { logger } from '../../shared/logger/logger';
 
 const generateSlug = (title: string): string => {
   return title
@@ -49,12 +52,16 @@ class BlogsService extends BaseService<IBlogDocument, typeof blogsRepository> {
       const update: Partial<IBlogDocument> = { ...dto } as unknown as Partial<IBlogDocument>;
       if (dto.slug) update.slug = await ensureUniqueSlug(generateSlug(dto.slug), existing._id.toString());
       if (file) update.image = await UploadService.replace(existing.image, file);
-      return (await blogsRepository.updateById(existing._id.toString(), update))!;
+      const updated = (await blogsRepository.updateById(existing._id.toString(), update))!;
+      this.syncKnowledge(updated._id as Types.ObjectId);
+      return updated;
     }
     const slug = await ensureUniqueSlug(base);
     const payload: Partial<IBlogDocument> = { ...dto, slug } as unknown as Partial<IBlogDocument>;
     if (file) payload.image = await UploadService.upload(file);
-    return blogsRepository.create(payload);
+    const created = await blogsRepository.create(payload);
+    this.syncKnowledge(created._id as Types.ObjectId);
+    return created;
   }
 
   async updateBlog(id: string, dto: UpdateBlogDto, file?: Express.Multer.File): Promise<IBlogDocument> {
@@ -68,6 +75,7 @@ class BlogsService extends BaseService<IBlogDocument, typeof blogsRepository> {
     if (file) update.image = await UploadService.replace(existing.image, file);
     const updated = await blogsRepository.updateById(id, update);
     if (!updated) throw ApiError.notFound('Blog not found');
+    this.syncKnowledge(updated._id as Types.ObjectId);
     return updated;
   }
 
@@ -77,6 +85,9 @@ class BlogsService extends BaseService<IBlogDocument, typeof blogsRepository> {
     await UploadService.remove(blog.image);
     const deleted = await blogsRepository.deleteById(id);
     if (!deleted) throw ApiError.notFound('Blog not found');
+    knowledgeService
+      .deleteChunks('blog', deleted._id as Types.ObjectId)
+      .catch((err) => logger.warn('[Knowledge] Failed to delete blog chunk:', err));
     return deleted;
   }
 
@@ -88,7 +99,15 @@ class BlogsService extends BaseService<IBlogDocument, typeof blogsRepository> {
       draft: blog.published,
     });
     if (!updated) throw ApiError.notFound('Blog not found');
+    // Re-sync: indexBlogById will remove the chunk if now unpublished
+    this.syncKnowledge(updated._id as Types.ObjectId);
     return updated;
+  }
+
+  private syncKnowledge(id: Types.ObjectId): void {
+    knowledgeService
+      .indexBlogById(id)
+      .catch((err) => logger.warn('[Knowledge] Failed to index blog:', err));
   }
 }
 

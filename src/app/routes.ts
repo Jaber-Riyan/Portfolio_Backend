@@ -16,6 +16,7 @@ import publicRoute from "../modules/public/public.route";
 import uploadRoute from "../modules/upload/upload.route";
 import messagesRoute from "../modules/messages/messages.route";
 import { ChatRoutes } from "../modules/chat/chat.route";
+import knowledgeRoute from "../modules/knowledge/knowledge.route";
 
 const router = Router();
 
@@ -32,6 +33,7 @@ router.use("/blogs", blogsRoute);
 router.use("/contact", contactRoute);
 router.use("/greeting", greetingRoute);
 router.use("/chat", ChatRoutes);
+router.use("/knowledge", knowledgeRoute);
 router.use("/theme", themeRoute);
 router.use("/upload", uploadRoute);
 router.use("/messages", messagesRoute);

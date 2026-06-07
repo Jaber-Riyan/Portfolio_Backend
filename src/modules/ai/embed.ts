@@ -9,7 +9,7 @@ export const initializeEmbedder = async () => {
     )
 }
 
-export async function getEmbedding(text: any): Promise<number[]> {
+export async function getEmbedding(text: string): Promise<number[]> {
     if (!embedder) {
         throw new Error(
             "Embedder not initialized. Call initializeEmbedder() first."
