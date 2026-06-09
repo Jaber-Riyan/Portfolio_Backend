@@ -15,7 +15,9 @@ const startServer = async (): Promise<void> => {
   await connectDB();
 
   // Load the local embedding model into memory before accepting requests
-  await initializeEmbedder();
+  if (process.env.NODE_ENV !== "production") {
+    await initializeEmbedder();
+  }
 
   const server = http.createServer(app);
 
