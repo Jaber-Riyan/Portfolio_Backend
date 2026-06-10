@@ -4,20 +4,13 @@ import app from './app';
 import connectDB from '../config/database';
 import { env } from '../config/env';
 import { logger } from '../shared/logger/logger';
-import { initializeEmbedder } from '../modules/ai/embed';
 import { knowledgeService } from '../modules/knowledge/knowledge.service';
 import { chatService } from '../modules/chat/chat.service';
-import { seedAdmin } from '../scripts/seedAdmin';
 
 const STALE_SESSION_SWEEP_INTERVAL_MS = 60 * 1000; // every 60 seconds
 
 const startServer = async (): Promise<void> => {
   await connectDB();
-
-  // Load the local embedding model into memory before accepting requests
-  if (process.env.NODE_ENV !== "production") {
-    await initializeEmbedder();
-  }
 
   const server = http.createServer(app);
 
