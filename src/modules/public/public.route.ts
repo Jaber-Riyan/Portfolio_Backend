@@ -9,4 +9,5 @@ router.get('/about', getPublicAbout);
 router.get('/projects', getPublicProjects);
 router.get('/theme', getPublicTheme);
 
+export { router as publicRoute };
 export default router;
