@@ -9,9 +9,8 @@ const connectDB = async (): Promise<void> => {
 
   try {
     await mongoose.connect(env.mongoUri, {
-      autoIndex: true,
       retryWrites: true,
-      serverSelectionTimeoutMS: 10000,
+      serverSelectionTimeoutMS: 5000,
       connectTimeoutMS: 10000,
     });
 
@@ -19,7 +18,6 @@ const connectDB = async (): Promise<void> => {
     logger.info(`MongoDB connected: ${mongoose.connection.host}`);
   } catch (error) {
     logger.error('MongoDB connection error:', error);
-    // Don't call process.exit in serverless functions — throw so callers can handle the error.
     throw error;
   }
 };
