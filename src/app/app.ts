@@ -4,7 +4,6 @@ import helmet from 'helmet';
 import morgan from 'morgan';
 import cookieParser from 'cookie-parser';
 import compression from 'compression';
-import path from 'path';
 import { env } from '../config/env';
 import apiRoutes, { publicRoute } from './routes';
 import { globalErrorHandler } from '../shared/middleware/globalError';
@@ -33,10 +32,6 @@ app.use(morgan(env.isDev ? 'dev' : 'combined', {
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use(cookieParser(env.cookieSecret));
-
-app.use('/uploads', express.static(path.join(process.cwd(), 'uploads'), {
-  maxAge: env.isProd ? '7d' : 0,
-}));
 
 app.get('/', (_req, res) => {
   res.json({
